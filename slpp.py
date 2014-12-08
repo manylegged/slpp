@@ -22,9 +22,9 @@ class SLPP:
         self.len = 0
         self.depth = 0
         self.space = re.compile('\s', re.M)
-        self.alnum = re.compile('\w', re.M)
+        self.alnum = re.compile('(\w|[|])', re.M)
         self.newline = '\n'
-        self.tab = '\t'
+        self.tab = '  '
 
     def decode(self, text):
         if not text or type(text) is not str:
@@ -64,18 +64,20 @@ class SLPP:
                 )) == len(obj) ):
                 newline = tab = ''
             dp = tab * self.depth
-            s += "%s{%s" % (tab * (self.depth - 2), newline)
+            sep = '%s%s' % (newline, dp) if len(obj) > 4 else ""
+            s += sep + "{"
+            js = ', ' + sep
             if tp is dict:
-                s += (',%s' % newline).join(
-                    [self.__encode(v) if type(k) is int \
-                        else dp + '%s = %s' % (k, self.__encode(v)) \
-                        for k, v in obj.iteritems()
-                    ])
+                s += js.join([self.__encode(v) if type(k) is int \
+                              else '%s = %s' % (k, self.__encode(v)) \
+                              for k, v in obj.iteritems()
+                          ])
             else:
-                s += (',%s' % newline).join(
-                    [dp + self.__encode(el) for el in obj])
+                s += js.join([self.__encode(el) for el in obj])
             self.depth -= 1
-            s += "%s%s}" % (newline, tab * self.depth)
+            s += "}"
+        elif tp is set:
+            return "|".join(obj)
         return s
 
     def white(self):
@@ -100,7 +102,7 @@ class SLPP:
         if self.ch == '{':
             return self.object()
         if self.ch == "[":
-            self.next_chr()
+            self. next_chr()
         if self.ch in ['"',  "'",  '[']:
             return self.string(self.ch)
         if self.ch.isdigit() or self.ch == '-':
@@ -193,6 +195,8 @@ class SLPP:
                     return False
                 elif s == 'nil':
                     return None
+                elif '|' in s:
+                    return set(s.split('|'))
                 return str(s)
 
     def number(self):
