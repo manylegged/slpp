@@ -131,7 +131,7 @@ def string_test():
     >>> assert lua.decode(r"'test\'s string'") == "test's string"
 
     Add escaping on encode:
-    >>> assert lua.encode({'a': 'func("call()");'}) == '{\n\ta = "func(\\"call()\\");"\n}'
+    >>> assert lua.encode({'a': 'func("call()");'}) == '{a = "func(\\"call()\\");"}'
     """
     pass
 

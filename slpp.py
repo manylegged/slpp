@@ -27,7 +27,7 @@ class SLPP:
         self.tab = '  '
 
     def decode(self, text):
-        if not text or type(text) is not str:
+        if not text or not isinstance(text, basestring):
             return
         #FIXME: only short comments removed
         reg = re.compile('--.*$', re.M)
@@ -50,7 +50,7 @@ class SLPP:
         tab = self.tab
         newline = self.newline
         tp = type(obj)
-        if tp is str:
+        if isinstance(obj, basestring):
             s += '"%s"' % obj.replace(r'"', r'\"')
         elif tp in [int, float, long, complex]:
             s += str(obj)
@@ -60,7 +60,7 @@ class SLPP:
             self.depth += 1
             if len(obj) == 0 or ( tp is not dict and len(filter(
                     lambda x:  type(x) in (int,  float,  long) \
-                    or (type(x) is str and len(x) < 10),  obj
+                    or (isinstance(x, basestring) and len(x) < 10),  obj
                 )) == len(obj) ):
                 newline = tab = ''
             dp = tab * self.depth
@@ -151,7 +151,7 @@ class SLPP:
                     self.next_chr()
                     if k:
                        o[idx] = k
-                    if not numeric_keys and len([ key for key in o if type(key) in (str,  float,  bool,  tuple)]) == 0:
+                    if not numeric_keys and len([ key for key in o if type(key) in (str, unicode, float, bool, tuple)]) == 0:
                         ar = []
                         for key in o:
                            ar.insert(key, o[key])
