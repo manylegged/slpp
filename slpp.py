@@ -1,11 +1,5 @@
 import re
 
-ERRORS_unexp_end_string = u'Unexpected end of string while parsing Lua string.',
-ERRORS_unexp_end_table = u'Unexpected end of table while parsing Lua string.',
-ERRORS_mfnumber_minus = u'Malformed number (no digits after initial minus).',
-ERRORS_mfnumber_dec_point = u'Malformed number (no digits after decimal point).',
-ERRORS_mfnumber_sci = u'Malformed number (bad scientific format).',
-
 CONST_quotes = '"\'['
 CONST_num = set('eExX.-+ABCDEFabcdef0123456789')
 
@@ -27,9 +21,6 @@ class SLPP:
     def decode(self, text):
         if not text or not isinstance(text, basestring):
             return
-        #FIXME: only short comments removed
-        reg = re.compile('--.*$', re.M)
-        text = reg.sub('', text, 0)
         self.text = text
         self.at, self.ch, self.depth = 0, '', 0
         self.len = len(text)
@@ -79,8 +70,13 @@ class SLPP:
         return s
 
     def white(self):
+        in_comment = False
         while self.ch:
-            if self.ch.isspace():
+            if self.ch == '-' and self.text[self.at] == '-':
+                in_comment = True
+            if in_comment or self.ch.isspace():
+                if self.ch == '\n':
+                    in_comment = False
                 self.next_chr()
             else:
                 break
@@ -108,11 +104,11 @@ class SLPP:
         return self.word()
 
     def string(self, end=None):
-        s = ''
+        s = u''
         start = self.ch
         if end == '[':
             end = ']'
-        if start in ['"',  "'",  '[']:
+        if start in CONST_quotes:
             while self.next_chr():
                 if self.ch == end:
                     self.next_chr()
@@ -123,7 +119,8 @@ class SLPP:
                     if self.ch != end:
                         s += '\\'
                 s += self.ch
-        print ERRORS_unexp_end_string
+        raise ParseError(u'Unexpected end of string while parsing Lua string: %s%s%s' \
+                         % (start, s[:20].replace("\n", "\\n") + ("..." if len(s) >= 20 else ""), end))
 
     def object(self):
         o = {}
@@ -174,7 +171,7 @@ class SLPP:
                         o[idx] = k
                         idx += 1
                         k = ''
-        print ERRORS_unexp_end_table #Bad exit here
+        raise ParseError('Unexpected end of table while parsing Lua string.')
 
     def word(self):
         s = ''
