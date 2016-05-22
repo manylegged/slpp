@@ -116,6 +116,8 @@ class SLPP:
                         return s
                 if self.ch == '\\' and start == end:
                     self.next_chr()
+                    if self.ch == "\n":
+                        continue
                     if self.ch != end:
                         s += '\\'
                 s += self.ch
@@ -124,61 +126,42 @@ class SLPP:
 
     def object(self):
         o = {}
-        k = ''
         idx = 0
         numeric_keys = False
         self.next_chr()
-        if self.ch and self.ch == '}':
+        while self.ch and self.ch != '}':
             self.white()
-            self.next_chr()
-            return o #Exit here
-        else:
-            while self.ch:
+            k = self.value()
+            if self.ch == ']':
+                numeric_keys = True
+                self.next_chr()
+            self.white()
+            if self.ch == '=':
+                self.next_chr()
                 self.white()
-                if self.ch == '{':
-                    o[idx] = self.object()
-                    idx += 1
-                    continue
-                elif self.ch == '}':
-                    self.next_chr()
-                    if k:
-                       o[idx] = k
-                    if not numeric_keys and all(isinstance(key, int) for key in o):
-                        ar = []
-                        for key in o:
-                           ar.insert(key, o[key])
-                        o = ar
-                    return o #or here
-                else:
-                    if self.ch == ',':
-                        self.next_chr()
-                        continue
-                    else:
-                        k = self.value()
-                        if self.ch == ']':
-                            numeric_keys = True
-                            self.next_chr()
-                    self.white()
-                    if self.ch == '=':
-                        self.next_chr()
-                        self.white()
-                        o[k] = self.value()
-                        idx += 1
-                        k = ''
-                    elif self.ch == ',':
-                        self.next_chr()
-                        self.white()
-                        o[idx] = k
-                        idx += 1
-                        k = ''
-        raise ParseError('Unexpected end of table while parsing Lua string.')
+                o[k] = self.value()
+            else:
+                o[idx] = k
+            idx += 1
+            if self.ch == ',': # optional comma
+                self.next_chr()
+            self.white()
+        if self.ch != '}':
+            raise ParseError('Unexpected end of data while parsing Lua table')
+        self.next_chr()
+        if not numeric_keys and all(isinstance(key, int) for key in o):
+            ar = []
+            for key in o:
+               ar.insert(key, o[key])
+            o = ar
+        return o
 
     def word(self):
         s = ''
         if self.ch != '\n':
-          s = self.ch
+            s = self.ch
         while self.next_chr():
-            if self.ch.isalnum():
+            if self.ch.isalnum() or self.ch == "_":
                 s += self.ch
             else:
                 if re.match('^true$', s, re.I):
